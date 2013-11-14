@@ -1,0 +1,22 @@
+{
+  "name": "pointerpressrelease",
+  "version": "0.1.0",
+  "title": "jQuery pointerpress/pointerrelease",
+  "description": "Additional 'pointerpress' and 'pointerrelease' events on top of jquery-pointerevents",
+  "keywords": [ "jquery", "pointerevents", "pointerpress", "pointerrelease" ],
+  "author": {
+    "name": "Kir Belevich",
+    "email": "kir@soulshine.in",
+    "url": "https://github.com/deepsweet"
+  },
+  "licenses": [{
+    "type": "MIT",
+    "url": "https://github.com/deepsweet/jquery-pointerpressrelease/blob/master/LICENSE"
+  }],
+  "homepage": "https://github.com/deepsweet/jquery-pointerpressrelease",
+  "bugs": "https://github.com/deepsweet/jquery-pointerpressrelease/issues",
+  "dependencies": {
+    "jquery": ">=1.4.2",
+    "jquery-pointerevents": ""
+  }
+}
