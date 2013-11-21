@@ -3,6 +3,8 @@
     /*global jQuery:true*/
     'use strict';
 
+    // TODO: pointerpress on pointerenter
+
     // nothing to do without jquery-ppinterevents
     if(!('PointerEvent') in $) {
         return;
@@ -24,7 +26,8 @@
                     $(this).on({
                         pointerdown: eventSpecial.handlerDown,
                         pointermove: eventSpecial.handlerMove,
-                        pointerup: eventSpecial.handlerUp
+                        pointerup: eventSpecial.handlerUp,
+                        pointerleave: eventSpecial.handlerLeave
                     });
                 },
 
@@ -33,7 +36,8 @@
                     $(this).off({
                         pointerdown: eventSpecial.handlerDown,
                         pointermove: eventSpecial.handlerMove,
-                        pointerup: eventSpecial.handlerUp
+                        pointerup: eventSpecial.handlerUp,
+                        pointerleave: eventSpecial.handlerLeave
                     });
                 },
 
@@ -155,6 +159,7 @@
                         if(data.pressed) {
                             pointerevent = new $.PointerEvent(e, eventName);
                             pointerevent.dispatch(pointerevent.currentTarget);
+                            data.pressed = false;
                         }
                     }
                 // mouse – only left button
@@ -162,6 +167,18 @@
                     pointerevent = new $.PointerEvent(e, eventName);
                     pointerevent.dispatch(pointerevent.currentTarget);
                 }
+            },
+
+            handlerLeave: function(e) {
+
+                var data = $.data(e.currentTarget, eventName);
+
+                if(data && data.pressed) {
+                    var pointerevent = new $.PointerEvent(e, eventName);
+                    pointerevent.dispatch(pointerevent.currentTarget);
+                    data.pressed = false;
+                }
+
             }
         }
 
