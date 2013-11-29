@@ -25,6 +25,7 @@
                 setup: function() {
                     $(this).on({
                         pointerdown: eventSpecial.handlerDown,
+                        pointerenter: eventSpecial.handlerTouchEnter,
                         pointermove: eventSpecial.handlerMove,
                         pointerup: eventSpecial.handlerUp,
                         pointerleave: eventSpecial.handlerLeave
@@ -43,8 +44,10 @@
 
                 handlerMove: function(e) {
 
+                    if(e.target !== e.currentTarget) { return; }
+
                     if(e.pointerType === 'touch') {
-                        var data = $.data(e.currentTarget, eventName);
+                        var data = $.data(e.relatedTarget, eventName);
 
                         // if there is a touch move
                         if(
@@ -75,7 +78,9 @@
 
         return {
             handlerDown: function(e) {
-                var target = e.currentTarget,
+                if(e.target !== e.currentTarget) { return; }
+
+                var target = e.target,
                     pointerevent;
 
                 // touch
@@ -84,56 +89,11 @@
                         timer: (function() {
                             // if there was no touchmove in 80ms – trigger pointerpress
                             return setTimeout(function() {
-                                if(!$.data(target, eventName).move) {
-                                    pointerevent = new $.PointerEvent(e, eventName);
-                                    pointerevent.dispatch(target);
-                                }
-                            }, 80);
-                        })(),
-                        clientX: e.clientX,
-                        clientY: e.clientY
-                    });
-                // mouse – only left button
-                } else if(e.which === 1) {
-                    pointerevent = new $.PointerEvent(e, eventName);
-                    pointerevent.dispatch(target);
-                }
-            },
-
-            handlerUp: function(e) {
-                if(e.pointerType === 'touch') {
-                    var data = $.data(e.currentTarget, eventName);
-
-                    // if there is a data – clear current pointerpress timeout
-                    if(data) {
-                        clearTimeout(data.timer);
-                    }
-                }
-            }
-        }
-
-    }
-
-    /**
-     * Object to extend $.event.special to handle pointerrelease.
-     *
-     * @param {sring} eventName event name
-     * @return {object}
-     */
-    function extendPointerRelease(eventName) {
-
-        return {
-            handlerDown: function(e) {
-                var target = e.currentTarget;
-
-                if(e.pointerType === 'touch') {
-                    $.data(target, eventName, {
-                        timer: (function() {
-                            // if there was no touchmove in 80ms – save that
-                            return setTimeout(function() {
                                 var data = $.data(target, eventName);
 
                                 if(!data.move) {
+                                    pointerevent = new $.PointerEvent(e, eventName);
+                                    $(target).trigger(pointerevent);
                                     data.pressed = true;
                                 }
                             }, 80);
@@ -141,44 +101,41 @@
                         clientX: e.clientX,
                         clientY: e.clientY
                     });
+                // mouse – only left button
+                } else if(e.which === 1) {
+                    pointerevent = new $.PointerEvent(e, eventName);
+                    $(target).trigger(pointerevent);
                 }
             },
 
             handlerUp: function(e) {
-                var pointerevent;
+                if(e.target !== e.currentTarget) { return; }
 
-                // touch
                 if(e.pointerType === 'touch') {
-                    var data = $.data(e.currentTarget, eventName);
+                    var data = $.data(e.target, eventName);
 
+                    // if there is a data – clear current pointerpress timeout
                     if(data) {
-                        // clear current pointerrelease timeout
                         clearTimeout(data.timer);
-
-                        // if pointer was pressed for 80ms – trigger pointerrelease
-                        if(data.pressed) {
-                            pointerevent = new $.PointerEvent(e, eventName);
-                            pointerevent.dispatch(pointerevent.currentTarget);
-                            data.pressed = false;
-                        }
                     }
-                // mouse – only left button
-                } else if(e.which === 1) {
-                    pointerevent = new $.PointerEvent(e, eventName);
-                    pointerevent.dispatch(pointerevent.currentTarget);
                 }
             },
 
-            handlerLeave: function(e) {
+            handlerTouchEnter: function(e) {
+                var target = e.target;
 
-                var data = $.data(e.currentTarget, eventName);
+                if(target !== e.currentTarget) { return; }
 
-                if(data && data.pressed) {
-                    var pointerevent = new $.PointerEvent(e, eventName);
-                    pointerevent.dispatch(pointerevent.currentTarget);
-                    data.pressed = false;
+                if(e.pointerType === 'touch' && e.relatedTarget) {
+                    var data = $.data(e.relatedTarget, eventName);
+
+                    // if there is a data – clear current pointerpress timeout
+                    if(data.pressed) {
+                        var pointerevent = new $.PointerEvent(e, eventName);
+                        // TODO: targets check
+                        $(target).triggerHandler(pointerevent);
+                    }
                 }
-
             }
         }
 
@@ -186,6 +143,5 @@
 
     // init pointer events
     addPointerEvent('press', extendPointerPress);
-    addPointerEvent('release', extendPointerRelease);
 
 })(jQuery);
