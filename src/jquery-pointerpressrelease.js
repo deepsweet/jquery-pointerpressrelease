@@ -3,10 +3,8 @@
     /*global jQuery:true*/
     'use strict';
 
-    // TODO: pointerpress on pointerenter
-
     // nothing to do without jquery-ppinterevents
-    if(!('PointerEvent') in $) {
+    if(!('PointerEvent' in $)) {
         return;
     }
 
@@ -25,10 +23,8 @@
                 setup: function() {
                     $(this).on({
                         pointerdown: eventSpecial.handlerDown,
-                        pointerenter: eventSpecial.handlerTouchEnter,
                         pointermove: eventSpecial.handlerMove,
-                        pointerup: eventSpecial.handlerUp,
-                        pointerleave: eventSpecial.handlerLeave
+                        pointerup: eventSpecial.handlerUp
                     });
                 },
 
@@ -37,22 +33,20 @@
                     $(this).off({
                         pointerdown: eventSpecial.handlerDown,
                         pointermove: eventSpecial.handlerMove,
-                        pointerup: eventSpecial.handlerUp,
-                        pointerleave: eventSpecial.handlerLeave
+                        pointerup: eventSpecial.handlerUp
                     });
                 },
 
                 handlerMove: function(e) {
 
-                    if(e.target !== e.currentTarget) { return; }
-
                     if(e.pointerType === 'touch') {
-                        var data = $.data(e.relatedTarget, eventName);
+                        var data = eventSpecial.data;
 
                         // if there is a touch move
                         if(
-                           Math.abs(e.clientX - data.clientX) > 5 ||
-                           Math.abs(e.clientY - data.clientY) > 5
+                           data &&
+                           (Math.abs(e.clientX - data.clientX) > 5 ||
+                           Math.abs(e.clientY - data.clientY) > 5)
                         ) {
                             // save that
                             data.move = true;
@@ -63,7 +57,11 @@
 
         // extend this $.event.special wrapper
         if(toExtend) {
-            $.extend(eventSpecial, toExtend(eventName));
+            $.extend(eventSpecial, toExtend({
+                event: eventSpecial,
+                name: eventName,
+                type: type
+            }));
         }
 
     }
@@ -71,70 +69,106 @@
     /**
      * Object to extend $.event.special to handle pointerpress.
      *
-     * @param {sring} eventName event name
+     * @param {object} params
+     * @param {object} params.event event object
+     * @param {string} params.name event name
+     * @param {string} params.type event type
      * @return {object}
      */
-    function extendPointerPress(eventName) {
+    function extendPointerPress(params) {
+
+        var data = params.event.data;
 
         return {
             handlerDown: function(e) {
-                if(e.target !== e.currentTarget) { return; }
-
                 var target = e.target,
                     pointerevent;
 
                 // touch
                 if(e.pointerType === 'touch') {
-                    $.data(target, eventName, {
+                    data = {
                         timer: (function() {
                             // if there was no touchmove in 80ms – trigger pointerpress
                             return setTimeout(function() {
-                                var data = $.data(target, eventName);
+                                if(data && !data.move) {
+                                    pointerevent = new $.PointerEvent(e, params.name);
+                                    $(e.currentTarget).triggerHandler(pointerevent);
+                                }
+                            }, 80);
+                        })(),
+                        clientX: e.clientX,
+                        clientY: e.clientY
+                    };
+                // mouse – only left button
+                } else if(e.which === 1) {
+                    pointerevent = new $.PointerEvent(e, params.name);
+                    $(target).trigger(pointerevent);
+                }
+            },
 
-                                if(!data.move) {
-                                    pointerevent = new $.PointerEvent(e, eventName);
-                                    $(target).trigger(pointerevent);
+            handlerUp: function(e) {
+                if(e.pointerType === 'touch') {
+                    if(data) {
+                        clearTimeout(data.timer);
+                    }
+                    data = null;
+                }
+            }
+        }
+
+    }
+
+    /**
+     * Object to extend $.event.special to handle pointerpress.
+     *
+     * @param {object} params
+     * @param {object} params.event event object
+     * @param {string} params.name event name
+     * @param {string} params.type event type
+     * @return {object}
+     */
+    function extendPointerRelease(params) {
+
+        var data = params.event.data;
+
+        return {
+            handlerDown: function(e) {
+                var target = e.target,
+                    pointerevent;
+
+                // touch
+                if(e.pointerType === 'touch') {
+                    data = {
+                        timer: (function() {
+                            // if there was no touchmove in 80ms – trigger pointerpress
+                            return setTimeout(function() {
+                                if(data && !data.move) {
                                     data.pressed = true;
                                 }
                             }, 80);
                         })(),
                         clientX: e.clientX,
                         clientY: e.clientY
-                    });
+                    };
                 // mouse – only left button
                 } else if(e.which === 1) {
-                    pointerevent = new $.PointerEvent(e, eventName);
+                    pointerevent = new $.PointerEvent(e, params.name);
                     $(target).trigger(pointerevent);
                 }
             },
 
             handlerUp: function(e) {
-                if(e.target !== e.currentTarget) { return; }
-
                 if(e.pointerType === 'touch') {
-                    var data = $.data(e.target, eventName);
+                    if(data && data.pressed) {
+                        var pointerevent = new $.PointerEvent(e, params.name);
+                        $(e.target).trigger(pointerevent);
+                    }
 
-                    // if there is a data – clear current pointerpress timeout
                     if(data) {
                         clearTimeout(data.timer);
                     }
-                }
-            },
 
-            handlerTouchEnter: function(e) {
-                var target = e.target;
-
-                if(target !== e.currentTarget) { return; }
-
-                if(e.pointerType === 'touch' && e.relatedTarget) {
-                    var data = $.data(e.relatedTarget, eventName);
-
-                    // if there is a data – clear current pointerpress timeout
-                    if(data.pressed) {
-                        var pointerevent = new $.PointerEvent(e, eventName);
-                        // TODO: targets check
-                        $(target).triggerHandler(pointerevent);
-                    }
+                    data = null;
                 }
             }
         }
@@ -143,5 +177,6 @@
 
     // init pointer events
     addPointerEvent('press', extendPointerPress);
+    addPointerEvent('release', extendPointerRelease);
 
 })(jQuery);
