@@ -102,7 +102,7 @@
                 // mouse – only left button
                 } else if(e.which === 1) {
                     pointerevent = new $.PointerEvent(e, params.name);
-                    $(target).trigger(pointerevent);
+                    $(e.currentTarget).triggerHandler(pointerevent);
                 }
             },
 
@@ -153,7 +153,7 @@
                 // mouse – only left button
                 } else if(e.which === 1) {
                     pointerevent = new $.PointerEvent(e, params.name);
-                    $(target).trigger(pointerevent);
+                    $(e.currentTarget).triggerHandler(pointerevent);
                 }
             },
 
